@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입</title>
+    <link rel="stylesheet" href="register.css">
+</head>
+<body>
+    <div class="container">
+        <h1>회원가입</h1>
+        <div id="registerForm">
+            <input type="text" id="registerUsername" placeholder="사용자 이름" required>
+            <input type="date" id="registerBirthdate" placeholder="생년월일" required>
+            <input type="tel" id="registerPhone" placeholder="전화번호" required>
+            <input type="password" id="registerPassword" placeholder="비밀번호" required>
+            <span class="password-toggle" onclick="togglePasswordVisibility('registerPassword')">
+                <i id="toggleIcon" class="fa fa-eye-slash"></i>
+            </span>
+            <button onclick="register()">회원가입</button>
+        </div>
+        <p>이미 계정이 있으신가요? <a href="login.html">로그인</a></p>
+        <p><a href="index.html">홈으로 돌아가기</a></p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
