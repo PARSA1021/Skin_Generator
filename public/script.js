@@ -10,7 +10,7 @@ async function fetchData(url, method, body) {
         });
         return await response.json();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('네트워크 오류:', error);
         throw new Error('네트워크 오류가 발생했습니다.');
     }
 }
@@ -39,7 +39,7 @@ async function login() {
             localStorage.setItem('userId', data.userID);
             alert('로그인 성공!');
             // 로그인 성공 후 처리 로직 추가
-            window.location.href = 'input_data.html'; // 예: 메인 페이지로 리다이렉트
+            window.location.href = 'input_data.html'; // 로그인 성공 시 리다이렉트
         } else {
             alert(data.message || '로그인 실패. 사용자 이름 또는 비밀번호를 확인해주세요.');
         }
@@ -70,7 +70,7 @@ async function register() {
 
         if (data.success) {
             alert('회원가입 성공!');
-            window.location.href = 'login.html'; // 로그인 페이지로 리다이렉트
+            window.location.href = 'login.html'; // 회원가입 성공 시 로그인 페이지로 리다이렉트
         } else {
             alert(data.message || '회원가입 실패. 이미 존재하는 사용자 이름일 수 있습니다.');
         }

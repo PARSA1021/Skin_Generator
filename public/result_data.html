@@ -5,6 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>결과 표시</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js 추가 -->
+    <style>
+        :root {
+            --primary-color: #b07676;
+            --secondary-color: #f0d8d8;
+            --text-color: #4a4a4a;
+            --background-color: #fff5f5;
+        }
+
+        body {
+            font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(176, 118, 118, 0.1);
+            overflow: hidden;
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+
+        #results {
+            margin-bottom: 1rem;
+        }
+
+        #radarChart {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+            transition: opacity 0.3s;
+        }
+
+        a:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -12,6 +82,7 @@
         <div id="results">
             <!-- 결과가 여기에 나타납니다. -->
         </div>
+        <canvas id="radarChart" width="400" height="400"></canvas> <!-- 캔버스 추가 -->
         <a href="input_data.html">다시 입력</a>
     </div>
     <script src="result_data.js"></script>

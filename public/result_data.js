@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", async function() {
     try {
-        // URL에서 파라미터 가져오기
         const urlParams = new URLSearchParams(window.location.search);
         const result = {
             b_actin: urlParams.get('bActin'),
@@ -15,7 +14,6 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         console.log('Received result:', result);
 
-        // 데이터 유효성 검사
         if (!result.b_actin || !result.average || !result.a || !result.b || !result.c || !result.d || !result.e || !result.f) {
             throw new Error('일부 필요한 데이터가 누락되었습니다.');
         }
@@ -31,6 +29,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         console.log('Parsed values:', values);
 
         displayResults(values, average);
+        displayRadarChart(values); // 방사형 그래프 표시
     } catch (error) {
         console.error('Error processing results:', error);
         const resultsDiv = document.getElementById('results');
@@ -57,4 +56,35 @@ function displayResults(values, average) {
 
     resultHTML += '</ul>';
     resultsDiv.innerHTML = resultHTML;
+}
+
+function displayRadarChart(values) {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    const labels = values.map(item => item.name.toUpperCase());
+    const data = values.map(item => item.result);
+    
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Results',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: Math.min(...data) - 10,
+                    suggestedMax: Math.max(...data) + 10
+                }
+            }
+        }
+    });
 }

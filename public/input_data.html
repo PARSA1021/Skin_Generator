@@ -4,38 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>데이터 입력</title>
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #b07676;
+            --secondary-color: #f0d8d8;
+            --text-color: #4a4a4a;
+            --background-color: #fff5f5;
+        }
+
+        body {
+            font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(176, 118, 118, 0.1);
+            overflow: hidden;
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+
+        form {
+            width: 100%;
+            display: grid;
+            gap: 1rem;
+        }
+
+        label {
+            font-weight: 600;
+        }
+
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="date"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #965e5e;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            input[type="date"],
+            input[type="number"],
+            button[type="submit"] {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>데이터 입력</h1>
         <form id="dataForm" action="/submit-data" method="POST">
-            <label for="date">날짜:</label>
-            <input type="date" id="date" name="date" required>
+            <div class="input-group">
+                <label for="date">날짜:</label>
+                <input type="date" id="date" name="date" required>
+            </div>
             
-            <label for="bActin">B-ACTIN:</label>
-            <input type="number" id="bActin" name="b_actin" step="0.01" required>
+            <div class="input-group">
+                <label for="bActin">B-ACTIN:</label>
+                <input type="number" id="bActin" name="b_actin" step="0.01" required>
+            </div>
             
-            <label for="average">평균값:</label>
-            <input type="number" id="average" name="average" step="0.01" required>
+            <div class="input-group">
+                <label for="average">평균값:</label>
+                <input type="number" id="average" name="average" step="0.01" required>
+            </div>
             
-            <label for="a">A:</label>
-            <input type="number" id="a" name="a" step="0.01" required>
+            <div class="input-group">
+                <label for="a">A:</label>
+                <input type="number" id="a" name="a" step="0.01" required>
+            </div>
             
-            <label for="b">B:</label>
-            <input type="number" id="b" name="b" step="0.01" required>
+            <div class="input-group">
+                <label for="b">B:</label>
+                <input type="number" id="b" name="b" step="0.01" required>
+            </div>
             
-            <label for="c">C:</label>
-            <input type="number" id="c" name="c" step="0.01" required>
+            <div class="input-group">
+                <label for="c">C:</label>
+                <input type="number" id="c" name="c" step="0.01" required>
+            </div>
             
-            <label for="d">D:</label>
-            <input type="number" id="d" name="d" step="0.01" required>
+            <div class="input-group">
+                <label for="d">D:</label>
+                <input type="number" id="d" name="d" step="0.01" required>
+            </div>
             
-            <label for="e">E:</label>
-            <input type="number" id="e" name="e" step="0.01" required>
+            <div class="input-group">
+                <label for="e">E:</label>
+                <input type="number" id="e" name="e" step="0.01" required>
+            </div>
             
-            <label for="f">F:</label>
-            <input type="number" id="f" name="f" step="0.01" required>
+            <div class="input-group">
+                <label for="f">F:</label>
+                <input type="number" id="f" name="f" step="0.01" required>
+            </div>
             
             <!-- CSRF 토큰 추가 -->
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">

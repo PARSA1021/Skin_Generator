@@ -12,12 +12,12 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// 세션 설정
+// Session settings
 app.use(session({
     secret: 'your_secret_key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false, httpOnly: true, maxAge: 3600000 } // 세큐어 모드는 프로덕션 환경에서 true로 설정
+    cookie: { secure: false, httpOnly: true, maxAge: 3600000 } // Set secure to true in production
 }));
 
 // Database connection with busy timeout
@@ -74,124 +74,96 @@ const initializeDatabase = () => {
     });
 };
 
-// Validate phone number format
-const validatePhoneNumber = (phone) => {
-    const phoneRegex = /^010-\d{4}-\d{4}$/;
-    return phoneRegex.test(phone);
-};
+// Utility functions
+const validatePhoneNumber = (phone) => /^010-\d{4}-\d{4}$/.test(phone);
+const validatePassword = (password) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(password);
+const hashPassword = (password) => bcrypt.hash(password, 10);
+const comparePassword = (password, hash) => bcrypt.compare(password, hash);
 
-// Validate password format
-const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    return passwordRegex.test(password);
-};
-
-// Hash password
-const hashPassword = async (password) => {
-    return await bcrypt.hash(password, 10);
-};
-
-// Compare password hash
-const comparePassword = async (password, hash) => {
-    return await bcrypt.compare(password, hash);
-};
-
-// Calculate age group based on birthdate
 const calculateAgeGroup = (birthdate) => {
-    const today = new Date();
-    const birthDate = new Date(birthdate);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-
+    const age = new Date().getFullYear() - new Date(birthdate).getFullYear();
     if (age < 20) return '10대 이하';
-    else if (age < 30) return '20대';
-    else if (age < 40) return '30대';
-    else if (age < 50) return '40대';
-    else if (age < 60) return '50대';
-    else if (age < 70) return '60대';
-    else if (age < 80) return '70대';
-    else if (age < 90) return '80대';
-    else if (age < 100) return '90대';
-    else return '100대 이상';
+    if (age < 30) return '20대';
+    if (age < 40) return '30대';
+    if (age < 50) return '40대';
+    if (age < 60) return '50대';
+    if (age < 70) return '60대';
+    if (age < 80) return '70대';
+    if (age < 90) return '80대';
+    if (age < 100) return '90대';
+    return '100대 이상';
 };
 
 // Initialize database tables on startup
 initializeDatabase();
 
-// Handle database errors
 const handleDatabaseError = (res, err) => {
     console.error(err);
     res.status(500).json({ success: false, message: '데이터베이스 오류가 발생했습니다.' });
 };
 
-// Function to get user by ID
-const getUserById = (userId) => {
-    return new Promise((resolve, reject) => {
-        db.get("SELECT * FROM users WHERE id = ?", [userId], (err, user) => {
-            if (err) reject(err);
-            resolve(user);
-        });
+// User functions
+const getUserById = (userId) => new Promise((resolve, reject) => {
+    db.get("SELECT * FROM users WHERE id = ?", [userId], (err, user) => {
+        if (err) reject(err);
+        resolve(user);
     });
-};
+});
 
-// Function to insert result entry with retry mechanism and transaction
-const insertResultEntry = (userId, username, phone, ageGroup, date, bActin, average, results) => {
-    return new Promise((resolve, reject) => {
-        const tryInsert = (retries = 3) => {
-            db.serialize(() => {
-                db.run('BEGIN TRANSACTION', (err) => {
-                    if (err) {
-                        if (err.code === 'SQLITE_ERROR' && err.message.includes('cannot start a transaction within a transaction')) {
+const getUserByUsername = (username) => new Promise((resolve, reject) => {
+    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+        if (err) reject(err);
+        resolve(user);
+    });
+});
+
+const insertUser = (username, phone, password, birthdate) => new Promise((resolve, reject) => {
+    db.run("INSERT INTO users (username, phone, password, birthdate) VALUES (?, ?, ?, ?)",
+        [username, phone, password, birthdate], (err) => {
+            if (err) reject(err);
+            resolve();
+        });
+});
+
+// Entry functions
+const insertResultEntry = (userId, username, phone, ageGroup, date, bActin, average, results) => new Promise((resolve, reject) => {
+    const tryInsert = (retries = 3) => {
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION', (err) => {
+                if (err) return reject(err);
+
+                db.run(`INSERT INTO result_entries (user_id, username, phone, age_group, date, b_actin, average, a, b, c, d, e, f, result)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [userId, username, phone, ageGroup, date, bActin, average, results.a, results.b, results.c, results.d, results.e, results.f, JSON.stringify(results)], (err) => {
+                        if (err) {
                             db.run('ROLLBACK', () => {
-                                tryInsert(retries);
-                            });
-                        } else {
-                            reject(err);
-                        }
-                    } else {
-                        db.run(`INSERT INTO result_entries (user_id, username, phone, age_group, date, b_actin, average, a, b, c, d, e, f, result)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [userId, username, phone, ageGroup, date, bActin, average, results.a, results.b, results.c, results.d, results.e, results.f, JSON.stringify(results)], (err) => {
-                                if (err) {
-                                    db.run('ROLLBACK', () => {
-                                        if (err.code === 'SQLITE_BUSY' && retries > 0) {
-                                            setTimeout(() => tryInsert(retries - 1), 1000); // Wait 1 second before retrying
-                                        } else {
-                                            reject(err);
-                                        }
-                                    });
+                                if (err.code === 'SQLITE_BUSY' && retries > 0) {
+                                    setTimeout(() => tryInsert(retries - 1), 1000); // Wait 1 second before retrying
                                 } else {
-                                    db.run('COMMIT', (commitErr) => {
-                                        if (commitErr) {
-                                            reject(commitErr);
-                                        } else {
-                                            resolve();
-                                        }
-                                    });
+                                    reject(err);
                                 }
                             });
-                    }
-                });
+                        } else {
+                            db.run('COMMIT', (commitErr) => {
+                                if (commitErr) reject(commitErr);
+                                else resolve();
+                            });
+                        }
+                    });
             });
-        };
-        tryInsert();
-    });
-};
+        });
+    };
+    tryInsert();
+});
 
-// Function to insert data entry
-const insertDataEntry = (userId, username, phone, ageGroup, date, bActin, average, inputData) => {
-    return new Promise((resolve, reject) => {
-        db.run(`INSERT INTO data_entries (user_id, username, phone, age_group, date, b_actin, average, a, b, c, d, e, f)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [userId, username, phone, ageGroup, date, bActin, average, inputData.a, inputData.b, inputData.c, inputData.d, inputData.e, inputData.f], (err) => {
-                if (err) reject(err);
-                resolve();
-            });
-    });
-};
+const insertDataEntry = (userId, username, phone, ageGroup, date, bActin, average, inputData) => new Promise((resolve, reject) => {
+    db.run(`INSERT INTO data_entries (user_id, username, phone, age_group, date, b_actin, average, a, b, c, d, e, f)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, username, phone, ageGroup, date, bActin, average, inputData.a, inputData.b, inputData.c, inputData.d, inputData.e, inputData.f], (err) => {
+            if (err) reject(err);
+            resolve();
+        });
+});
 
 // Register endpoint
 app.post('/register', async (req, res) => {
@@ -207,9 +179,7 @@ app.post('/register', async (req, res) => {
         }
 
         const hash = await hashPassword(password);
-
-        const birthdateObj = new Date(birthdate);
-        const formattedBirthdate = birthdateObj.toISOString().split('T')[0];
+        const formattedBirthdate = new Date(birthdate).toISOString().split('T')[0];
 
         await insertUser(username, phone, hash, formattedBirthdate);
 
@@ -224,17 +194,6 @@ app.post('/register', async (req, res) => {
         }
     }
 });
-
-// Function to insert user
-const insertUser = (username, phone, password, birthdate) => {
-    return new Promise((resolve, reject) => {
-        db.run("INSERT INTO users (username, phone, password, birthdate) VALUES (?, ?, ?, ?)",
-            [username, phone, password, birthdate], (err) => {
-                if (err) reject(err);
-                resolve();
-            });
-    });
-};
 
 // Login endpoint
 app.post('/login', async (req, res) => {
@@ -260,16 +219,6 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Function to get user by username
-const getUserByUsername = (username) => {
-    return new Promise((resolve, reject) => {
-        db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
-            if (err) reject(err);
-            resolve(user);
-        });
-    });
-};
-
 // Submit results endpoint
 app.post('/submit-results', async (req, res) => {
     const { date, b_actin, average, a, b, c, d, e, f } = req.body;
@@ -288,13 +237,11 @@ app.post('/submit-results', async (req, res) => {
 
         const ageGroup = calculateAgeGroup(user.birthdate);
 
-        // Ensure b_actin is converted to a valid number
         const bActinValue = parseFloat(b_actin);
         if (isNaN(bActinValue)) {
             return res.status(400).json({ success: false, message: 'b_actin 값이 유효하지 않습니다.' });
         }
 
-        // Calculate results based on the received data
         const calculatedResults = {
             a: parseFloat(a) - bActinValue,
             b: parseFloat(b) - bActinValue,
@@ -304,10 +251,7 @@ app.post('/submit-results', async (req, res) => {
             f: parseFloat(f) - bActinValue
         };
 
-        // Store the calculated results as part of the result_entries
         await insertResultEntry(userId, user.username, user.phone, ageGroup, date, bActinValue, average, calculatedResults);
-
-        // Insert data entry
         await insertDataEntry(userId, user.username, user.phone, ageGroup, date, bActinValue, average, {
             a: parseFloat(a),
             b: parseFloat(b),

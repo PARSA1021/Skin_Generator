@@ -3,24 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입</title>
-    <link rel="stylesheet" href="register.css">
+    <title>Skin GeneCurator™ - 회원가입</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #b07676;
+            --secondary-color: #f0d8d8;
+            --text-color: #4a4a4a;
+            --background-color: #fff5f5;
+        }
+
+        body {
+            font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: url('images/Skin_Generator_Image.png') no-repeat center center/cover;
+            color: var(--text-color);
+            position: relative;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(176, 118, 118, 0.3);
+            overflow: hidden;
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        #registerForm {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #registerForm input {
+            width: calc(100% - 2rem);
+            padding: 1rem;
+            margin: 10px 0;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #registerForm input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(176, 118, 118, 0.2);
+        }
+
+        .password-toggle {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-left: -30px;
+        }
+
+        .password-toggle i {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-color);
+        }
+
+        button {
+            width: calc(100% - 2rem);
+            padding: 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        button:hover {
+            background-color: #965e5e;
+            transform: scale(1.05);
+        }
+
+        p {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+
+        a:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            #registerForm input {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+
+            button {
+                font-size: 1rem;
+                padding: 0.8rem;
+            }
+        }
+
+        .home-link {
+            margin-top: 1rem;
+        }
+
+        .home-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .home-link a:hover {
+            text-decoration: underline;
+        }
+
+        .home-link a i {
+            margin-right: 0.5rem;
+        }
+    </style>
 </head>
 <body>
+    <div class="overlay"></div>
     <div class="container">
         <h1>회원가입</h1>
         <div id="registerForm">
             <input type="text" id="registerUsername" placeholder="사용자 이름" required>
             <input type="date" id="registerBirthdate" placeholder="생년월일" required>
             <input type="tel" id="registerPhone" placeholder="전화번호" required>
-            <input type="password" id="registerPassword" placeholder="비밀번호" required>
-            <span class="password-toggle" onclick="togglePasswordVisibility('registerPassword')">
-                <i id="toggleIcon" class="fa fa-eye-slash"></i>
-            </span>
+            <div style="position: relative; width: 100%;">
+                <input type="password" id="registerPassword" placeholder="비밀번호" required>
+                <span class="password-toggle" onclick="togglePasswordVisibility('registerPassword')">
+                    <i id="toggleIcon" class="fa fa-eye-slash"></i>
+                </span>
+            </div>
             <button onclick="register()">회원가입</button>
         </div>
         <p>이미 계정이 있으신가요? <a href="login.html">로그인</a></p>
-        <p><a href="index.html">홈으로 돌아가기</a></p>
+        <p class="home-link"><a href="index.html"><i class="fas fa-home"></i>홈으로 돌아가기</a></p>
     </div>
     <script src="script.js"></script>
 </body>
