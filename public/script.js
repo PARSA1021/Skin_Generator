@@ -21,9 +21,9 @@ function validatePhoneNumber(phone) {
     return phoneRegex.test(phone);
 }
 
-// 비밀번호 유효성 검사 함수
+// 비밀번호 유효성 검사 함수 (6자리 숫자만 허용)
 function validatePassword(password) {
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    const passwordRegex = /^\d{6}$/;  // 정규 표현식을 6자리 숫자로 변경
     return passwordRegex.test(password);
 }
 

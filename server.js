@@ -16,13 +16,20 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({
     secret: 'your_secret_key',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: { secure: false, httpOnly: true, maxAge: 3600000 } // Set secure to true in production
 }));
 
 // Database connection with busy timeout
-const db = new sqlite3.Database('users.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE);
-db.configure('busyTimeout', 5000); // Set busy timeout to 5000 milliseconds
+const db = new sqlite3.Database('users.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+    if (err) {
+        console.error('데이터베이스 연결 오류:', err.message);
+    } else {
+        console.log('데이터베이스에 연결되었습니다.');
+        db.configure('busyTimeout', 5000); // Set busy timeout to 5000 milliseconds
+        initializeDatabase();
+    }
+});
 
 // Initialize database tables
 const initializeDatabase = () => {
@@ -33,7 +40,9 @@ const initializeDatabase = () => {
             birthdate DATE,
             phone TEXT UNIQUE,
             password TEXT
-        )`);
+        )`, (err) => {
+            if (err) console.error('users 테이블 생성 오류:', err.message);
+        });
 
         db.run(`CREATE TABLE IF NOT EXISTS data_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,14 +53,16 @@ const initializeDatabase = () => {
             date TEXT,
             b_actin REAL,
             average REAL,
-            a REAL,
-            b REAL,
-            c REAL,
-            d REAL,
-            e REAL,
-            f REAL,
+            CLDN10 REAL,
+            TIMP3 REAL,
+            MMP8 REAL,
+            FLG REAL,
+            AQP3 REAL,
+            COL10A1 REAL,
             FOREIGN KEY(user_id) REFERENCES users(id)
-        )`);
+        )`, (err) => {
+            if (err) console.error('data_entries 테이블 생성 오류:', err.message);
+        });
 
         db.run(`CREATE TABLE IF NOT EXISTS result_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,23 +73,40 @@ const initializeDatabase = () => {
             date TEXT,
             b_actin REAL,
             average REAL,
-            a REAL,
-            b REAL,
-            c REAL,
-            d REAL,
-            e REAL,
-            f REAL,
+            CLDN10 REAL,
+            TIMP3 REAL,
+            MMP8 REAL,
+            FLG REAL,
+            AQP3 REAL,
+            COL10A1 REAL,
             result TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
-        )`);
+        )`, (err) => {
+            if (err) console.error('result_entries 테이블 생성 오류:', err.message);
+        });
     });
 };
 
 // Utility functions
 const validatePhoneNumber = (phone) => /^010-\d{4}-\d{4}$/.test(phone);
-const validatePassword = (password) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(password);
-const hashPassword = (password) => bcrypt.hash(password, 10);
-const comparePassword = (password, hash) => bcrypt.compare(password, hash);
+
+const validatePassword = (password) => /^\d{6}$/.test(password);
+
+const hashPassword = async (password) => {
+    try {
+        return await bcrypt.hash(password, 10);
+    } catch (error) {
+        throw new Error('비밀번호 해싱 중 오류가 발생했습니다.');
+    }
+};
+
+const comparePassword = async (password, hash) => {
+    try {
+        return await bcrypt.compare(password, hash);
+    } catch (error) {
+        throw new Error('비밀번호 비교 중 오류가 발생했습니다.');
+    }
+};
 
 const calculateAgeGroup = (birthdate) => {
     const age = new Date().getFullYear() - new Date(birthdate).getFullYear();
@@ -94,11 +122,12 @@ const calculateAgeGroup = (birthdate) => {
     return '100대 이상';
 };
 
-// Initialize database tables on startup
-initializeDatabase();
+const isValidNumber = (value) => {
+    return typeof value === 'number' && !isNaN(value) && isFinite(value);
+};
 
 const handleDatabaseError = (res, err) => {
-    console.error(err);
+    console.error('데이터베이스 오류:', err);
     res.status(500).json({ success: false, message: '데이터베이스 오류가 발생했습니다.' });
 };
 
@@ -106,22 +135,22 @@ const handleDatabaseError = (res, err) => {
 const getUserById = (userId) => new Promise((resolve, reject) => {
     db.get("SELECT * FROM users WHERE id = ?", [userId], (err, user) => {
         if (err) reject(err);
-        resolve(user);
+        else resolve(user);
     });
 });
 
 const getUserByUsername = (username) => new Promise((resolve, reject) => {
     db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
         if (err) reject(err);
-        resolve(user);
+        else resolve(user);
     });
 });
 
 const insertUser = (username, phone, password, birthdate) => new Promise((resolve, reject) => {
     db.run("INSERT INTO users (username, phone, password, birthdate) VALUES (?, ?, ?, ?)",
-        [username, phone, password, birthdate], (err) => {
+        [username, phone, password, birthdate], function(err) {
             if (err) reject(err);
-            resolve();
+            else resolve(this.lastID);
         });
 });
 
@@ -132,13 +161,13 @@ const insertResultEntry = (userId, username, phone, ageGroup, date, bActin, aver
             db.run('BEGIN TRANSACTION', (err) => {
                 if (err) return reject(err);
 
-                db.run(`INSERT INTO result_entries (user_id, username, phone, age_group, date, b_actin, average, a, b, c, d, e, f, result)
+                db.run(`INSERT INTO result_entries (user_id, username, phone, age_group, date, b_actin, average, CLDN10, TIMP3, MMP8, FLG, AQP3, COL10A1, result)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [userId, username, phone, ageGroup, date, bActin, average, results.a, results.b, results.c, results.d, results.e, results.f, JSON.stringify(results)], (err) => {
+                    [userId, username, phone, ageGroup, date, bActin, average, results.CLDN10, results.TIMP3, results.MMP8, results.FLG, results.AQP3, results.COL10A1, JSON.stringify(results)], (err) => {
                         if (err) {
                             db.run('ROLLBACK', () => {
                                 if (err.code === 'SQLITE_BUSY' && retries > 0) {
-                                    setTimeout(() => tryInsert(retries - 1), 1000); // Wait 1 second before retrying
+                                    setTimeout(() => tryInsert(retries - 1), 1000);
                                 } else {
                                     reject(err);
                                 }
@@ -157,11 +186,11 @@ const insertResultEntry = (userId, username, phone, ageGroup, date, bActin, aver
 });
 
 const insertDataEntry = (userId, username, phone, ageGroup, date, bActin, average, inputData) => new Promise((resolve, reject) => {
-    db.run(`INSERT INTO data_entries (user_id, username, phone, age_group, date, b_actin, average, a, b, c, d, e, f)
+    db.run(`INSERT INTO data_entries (user_id, username, phone, age_group, date, b_actin, average, CLDN10, TIMP3, MMP8, FLG, AQP3, COL10A1)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, username, phone, ageGroup, date, bActin, average, inputData.a, inputData.b, inputData.c, inputData.d, inputData.e, inputData.f], (err) => {
+        [userId, username, phone, ageGroup, date, bActin, average, inputData.CLDN10, inputData.TIMP3, inputData.MMP8, inputData.FLG, inputData.AQP3, inputData.COL10A1], (err) => {
             if (err) reject(err);
-            resolve();
+            else resolve();
         });
 });
 
@@ -170,6 +199,10 @@ app.post('/register', async (req, res) => {
     const { username, phone, password, birthdate } = req.body;
 
     try {
+        if (!username || !phone || !password || !birthdate) {
+            return res.status(400).json({ success: false, message: '모든 필드를 입력해주세요.' });
+        }
+
         if (!validatePhoneNumber(phone)) {
             return res.status(400).json({ success: false, message: '올바른 전화번호 형식이 아닙니다.' });
         }
@@ -200,6 +233,10 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        if (!username || !password) {
+            return res.status(400).json({ success: false, message: '사용자 이름과 비밀번호를 입력해주세요.' });
+        }
+
         const user = await getUserByUsername(username);
 
         if (!user) {
@@ -209,7 +246,7 @@ app.post('/login', async (req, res) => {
         const result = await comparePassword(password, user.password);
 
         if (result) {
-            req.session.userId = user.id; // Set session userId
+            req.session.userId = user.id;
             res.json({ success: true });
         } else {
             res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
@@ -219,13 +256,20 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Submit results endpoint
 app.post('/submit-results', async (req, res) => {
-    const { date, b_actin, average, a, b, c, d, e, f } = req.body;
+    const { date, b_actin, average, CLDN10, TIMP3, MMP8, FLG, AQP3, COL10A1 } = req.body;
     const userId = req.session.userId;
 
     if (!userId) {
         return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    }
+
+    // 각 필드의 존재 여부 확인
+    const requiredFields = { date, b_actin, average, CLDN10, TIMP3, MMP8, FLG, AQP3, COL10A1 };
+    const missingFields = Object.keys(requiredFields).filter(field => requiredFields[field] == null);
+    
+    if (missingFields.length > 0) {
+        return res.status(400).json({ success: false, message: `다음 필드가 누락되었습니다: ${missingFields.join(', ')}` });
     }
 
     try {
@@ -238,28 +282,43 @@ app.post('/submit-results', async (req, res) => {
         const ageGroup = calculateAgeGroup(user.birthdate);
 
         const bActinValue = parseFloat(b_actin);
-        if (isNaN(bActinValue)) {
+        if (!isValidNumber(bActinValue)) {
             return res.status(400).json({ success: false, message: 'b_actin 값이 유효하지 않습니다.' });
         }
 
-        const calculatedResults = {
-            a: parseFloat(a) - bActinValue,
-            b: parseFloat(b) - bActinValue,
-            c: parseFloat(c) - bActinValue,
-            d: parseFloat(d) - bActinValue,
-            e: parseFloat(e) - bActinValue,
-            f: parseFloat(f) - bActinValue
+        const values = {
+            CLDN10: parseFloat(CLDN10),
+            TIMP3: parseFloat(TIMP3),
+            MMP8: parseFloat(MMP8),
+            FLG: parseFloat(FLG),
+            AQP3: parseFloat(AQP3),
+            COL10A1: parseFloat(COL10A1)
         };
 
+        for (const [key, value] of Object.entries(values)) {
+            if (!isValidNumber(value)) {
+                return res.status(400).json({ success: false, message: `${key} 값이 유효하지 않습니다.` });
+            }
+        }
+
+        const calculatedResults = {
+            CLDN10: values.CLDN10 - bActinValue,
+            TIMP3: values.TIMP3 - bActinValue,
+            MMP8: values.MMP8 - bActinValue,
+            FLG: values.FLG - bActinValue,
+            AQP3: values.AQP3 - bActinValue,
+            COL10A1: values.COL10A1 - bActinValue
+        };
+
+        // Ensure all calculated results are valid numbers
+        for (const [key, value] of Object.entries(calculatedResults)) {
+            if (!isValidNumber(value)) {
+                calculatedResults[key] = null; // or you could use a default value like 0
+            }
+        }
+
         await insertResultEntry(userId, user.username, user.phone, ageGroup, date, bActinValue, average, calculatedResults);
-        await insertDataEntry(userId, user.username, user.phone, ageGroup, date, bActinValue, average, {
-            a: parseFloat(a),
-            b: parseFloat(b),
-            c: parseFloat(c),
-            d: parseFloat(d),
-            e: parseFloat(e),
-            f: parseFloat(f)
-        });
+        await insertDataEntry(userId, user.username, user.phone, ageGroup, date, bActinValue, average, values);
 
         res.json({ success: true });
     } catch (err) {
@@ -277,6 +336,24 @@ app.post('/logout', (req, res) => {
     });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ success: false, message: '서버 내부 오류가 발생했습니다.' });
+});
+
+// Start the server
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log(`서버가 http://localhost:${port} 에서 실행 중입니다.`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    db.close((err) => {
+        if (err) {
+            console.error(err.message);
+        }
+        console.log('데이터베이스 연결이 닫혔습니다.');
+        process.exit(0);
+    });
 });
